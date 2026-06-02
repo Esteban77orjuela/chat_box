@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: chat-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chat_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: chat-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/chat_db
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      target: builder # Usar la etapa de Node, no Nginx
+    container_name: chat-frontend
+    command: npm run dev # Correr servidor de desarrollo
+    volumes:
+      - ./frontend:/app # Sincronizar código en vivo
+      - /app/node_modules # Evitar conflictos de dependencias
+    ports:
+      - "3000:5173" # Mapear puerto de Vite (5173) al 3000 del host
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
