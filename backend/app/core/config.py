@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 
 class Settings(BaseSettings):
@@ -18,8 +19,6 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.1-8b-instant"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
 settings = Settings()

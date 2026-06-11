@@ -1,40 +1,47 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:15-alpine
-    container_name: chat-db
+    container_name: chatbox-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
       POSTGRES_DB: chat_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "chat_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build: ./backend
-    container_name: chat-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbox-backend
+    env_file:
+      - ./backend/.env.example  # copy to .env locally before prod
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/chat_db
-      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
-      target: builder # Usar la etapa de Node, no Nginx
-    container_name: chat-frontend
-    command: npm run dev # Correr servidor de desarrollo
-    volumes:
-      - ./frontend:/app # Sincronizar código en vivo
-      - /app/node_modules # Evitar conflictos de dependencias
+      dockerfile: Dockerfile
+    container_name: chatbox-frontend
     ports:
-      - "3000:5173" # Mapear puerto de Vite (5173) al 3000 del host
+      - "80:80"
     depends_on:
       - backend
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  pgdata:

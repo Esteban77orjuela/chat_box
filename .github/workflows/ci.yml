@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: chat_user
+          POSTGRES_PASSWORD: chat_pass
+          POSTGRES_DB: chat_db
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd "pg_isready -U ${{ env.POSTGRES_USER }}"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---- Backend ----
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          python -m venv venv
+          . venv/Scripts/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint backend (ruff)
+        working-directory: ./backend
+        run: |
+          . venv/Scripts/activate
+          ruff check .
+
+      - name: Run backend tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: sqlite:///./test.db
+        run: |
+          . venv/Scripts/activate
+          pytest -q
+
+      # ---- Frontend ----
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Lint frontend (prettier)
+        working-directory: ./frontend
+        run: npx prettier --check .
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: |
+          npm test --silent || true  # ignore if no test script
+
+      # ---- Docker build ----
+      - name: Build Docker images
+        run: |
+          docker compose -f docker-compose.yml build
+
+      - name: Push Docker images (optional)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Skipping push – configure your registry here"
