@@ -13,7 +13,7 @@ export const useSocket = () => {
         socketRef.current = io(SOCKET_URL);
 
         socketRef.current.on('connect', () => {
-            print('Socket conectado');
+            console.log('Socket conectado');
         });
 
         socketRef.current.on('receive_message', (message) => {
@@ -41,6 +41,4 @@ export const useSocket = () => {
 
     return { sendMessage };
 };
-function print(arg0: string) {
-    console.log(arg0);
-}
+

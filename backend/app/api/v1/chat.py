@@ -2,23 +2,45 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
+from app.api.deps import get_current_user
+from app.models.chat import User, SenderType, Conversation
 from app.services.chat_service import chat_service
-from app.schemas.chat import ConversationResponse, ConversationBase, MessageResponse
+from app.schemas.chat import ConversationResponse, ConversationBase, MessageResponse, MessageInput
 
 router = APIRouter()
 
-# En un sistema real, usaríamos una dependencia para obtener el current_user del token JWT
-# Por ahora usaremos un mock user_id=1 para agilizar la implementación base
-
 @router.post("/", response_model=ConversationResponse)
-def create_conversation(conv_in: ConversationBase, db: Session = Depends(get_db)):
-    # user_id fijo para demo
-    return chat_service.create_conversation(db, user_id=1, title=conv_in.title)
+def create_conversation(conv_in: ConversationBase, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return chat_service.create_conversation(db, user_id=current_user.id, title=conv_in.title)
 
 @router.get("/", response_model=List[ConversationResponse])
-def get_conversations(db: Session = Depends(get_db)):
-    return chat_service.get_user_conversations(db, user_id=1)
+def get_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return chat_service.get_user_conversations(db, user_id=current_user.id)
 
 @router.get("/{conversation_id}/messages", response_model=List[MessageResponse])
-def get_messages(conversation_id: int, db: Session = Depends(get_db)):
+def get_messages(conversation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Omitimos verificación de propiedad por ahora
     return chat_service.get_conversation_messages(db, conversation_id)
+
+@router.post("/{conversation_id}/messages", response_model=MessageResponse)
+async def send_message(conversation_id: int, msg_in: MessageInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # 0. Asegurarnos de que la conversación exista (hack temporal para agilizar demo frontend)
+    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not conv:
+        chat_service.create_conversation(db, user_id=current_user.id, title="Mi Primer Chat")
+        
+    # 1. Guardar mensaje del usuario
+    user_msg = chat_service.add_message(db, conversation_id, content=msg_in.content, sender_type=SenderType.USER)
+    
+    # 2. Llamar a Groq AI
+    try:
+        # Obtenemos historial reciente para contexto (opcional)
+        history = chat_service.get_conversation_messages(db, conversation_id)[-10:]
+        ai_response_text = await chat_service.generate_ai_response(history, msg_in.content)
+    except Exception as e:
+        ai_response_text = f"Error al contactar con la IA: {str(e)}"
+
+    # 3. Guardar respuesta de la IA
+    ai_msg = chat_service.add_message(db, conversation_id, content=ai_response_text, sender_type=SenderType.AI)
+    
+    return ai_msg

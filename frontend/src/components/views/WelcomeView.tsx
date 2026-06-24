@@ -1,8 +1,50 @@
 import React, { useState } from 'react';
-import { Bell, Sparkles, ChevronRight, Music, Clapperboard, Bot } from 'lucide-react';
+import { Bell, Sparkles, ChevronRight, Music, Clapperboard, Bot, Send } from 'lucide-react';
+import { useChatStore } from '../../store/chatStore';
+import { apiFetch } from '../../services/api';
 
 const WelcomeView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Entertainment');
+  const [firstMessage, setFirstMessage] = useState('');
+  const { addMessage, setLoading } = useChatStore();
+
+  const handleStartChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firstMessage.trim()) return;
+    
+    const userContent = firstMessage;
+    setFirstMessage('');
+    
+    // Al agregar el primer mensaje, el ChatDrawer se abrirá automáticamente
+    addMessage({
+      content: userContent,
+      sender_type: 'user',
+      timestamp: new Date().toISOString()
+    });
+    
+    // Enviar a la IA
+    setLoading(true);
+    try {
+        const response = await apiFetch('/chat/1/messages', {
+            method: 'POST',
+            body: JSON.stringify({ content: userContent })
+        });
+
+        addMessage({
+            content: response.content,
+            sender_type: 'ai',
+            timestamp: response.timestamp,
+        });
+    } catch (error) {
+        addMessage({
+            content: "Ups, la IA no pudo responder. Revisa la consola o asegúrate de que GROQ_API_KEY esté bien.",
+            sender_type: 'ai',
+            timestamp: new Date().toISOString(),
+        });
+    } finally {
+        setLoading(false);
+    }
+  };
 
   return (
     <div className="px-6 pt-8 pb-4 space-y-8">
@@ -83,6 +125,26 @@ const WelcomeView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Input para iniciar chat */}
+      <form onSubmit={handleStartChat} className="fixed bottom-32 left-1/2 -translate-x-1/2 w-[90%] max-w-xl z-40">
+        <div className="relative">
+          <input
+            type="text"
+            value={firstMessage}
+            onChange={(e) => setFirstMessage(e.target.value)}
+            placeholder="Pregúntale lo que quieras a tu IA..."
+            className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full pl-6 pr-14 py-4 text-white placeholder:text-brand-light/50 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue shadow-2xl transition-all"
+          />
+          <button
+            type="submit"
+            disabled={!firstMessage.trim()}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-brand-blue rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Send size={18} className="ml-1" />
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

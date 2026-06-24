@@ -3,11 +3,10 @@ import { X, Sparkles } from 'lucide-react';
 import ChatBubble from './ChatBubble';
 import ChatInput from './ChatInput';
 import { useChatStore } from '../../store/chatStore';
-import { useSocket } from '../../hooks/useSocket';
+import { apiFetch } from '../../services/api';
 
 const ChatDrawer: React.FC = () => {
-  const { messages, isLoading, addMessage, setMessages } = useChatStore();
-  const { sendMessage } = useSocket();
+  const { messages, isLoading, addMessage, setMessages, setLoading } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -16,13 +15,41 @@ const ChatDrawer: React.FC = () => {
     }
   }, [messages]);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
+    // 1. Mensaje optimista (usuario)
     addMessage({
       content,
       sender_type: 'user',
       timestamp: new Date().toISOString(),
     });
-    sendMessage(content, messages);
+    
+    // 2. Llamada a la IA
+    setLoading(true);
+    try {
+        // En un caso real, gestionaríamos el ID de la conversación dinámicamente.
+        // Por ahora asumo la conversación 1. Si no existe, el endpoint debería fallar,
+        // pero podemos probarlo así y ajustar si hay error 404.
+        const response = await apiFetch('/chat/1/messages', {
+            method: 'POST',
+            body: JSON.stringify({ content })
+        });
+
+        // 3. Respuesta de la IA
+        addMessage({
+            content: response.content,
+            sender_type: 'ai',
+            timestamp: response.timestamp,
+        });
+    } catch (error) {
+        console.error("Error al hablar con la IA:", error);
+        addMessage({
+            content: "Ups, la IA no pudo responder. Revisa los logs del servidor.",
+            sender_type: 'ai',
+            timestamp: new Date().toISOString(),
+        });
+    } finally {
+        setLoading(false);
+    }
   };
 
   if (messages.length === 0) return null;

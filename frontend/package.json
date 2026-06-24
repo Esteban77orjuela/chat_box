@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "test": "echo \"No tests configured yet\" && exit 0"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

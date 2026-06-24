@@ -23,6 +23,9 @@ class Token(BaseModel):
     token_type: str
 
 # Chat Schemas
+class MessageInput(BaseModel):
+    content: str
+
 class MessageBase(BaseModel):
     content: str
     sender_type: SenderType

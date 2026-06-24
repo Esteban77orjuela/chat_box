@@ -3,10 +3,17 @@ import { Bot, Bell } from 'lucide-react';
 import WelcomeView from './components/views/WelcomeView';
 import ChatDrawer from './components/chat/ChatDrawer';
 import BottomNavigation from './components/layout/BottomNavigation';
+import AuthModal from './components/auth/AuthModal';
+import { useAuthStore } from './store/authStore';
 
 const App: React.FC = () => {
+  const { user } = useAuthStore();
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-brand-dark font-kanit overflow-hidden text-brand-light">
+      
+      {/* Si no hay usuario, mostramos el modal de Auth encima de todo */}
+      {!user && <AuthModal />}
       
       {/* Mobile Header / Navigation */}
       <div className="md:hidden flex items-center justify-between p-5 bg-brand-dark/95 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
