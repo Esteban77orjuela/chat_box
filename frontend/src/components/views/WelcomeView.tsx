@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Bell, Sparkles, ChevronRight, Music, Clapperboard, Bot, Send } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
+import { useAuthStore } from '../../store/authStore';
 import { apiFetch } from '../../services/api';
 
 const WelcomeView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Entertainment');
   const [firstMessage, setFirstMessage] = useState('');
   const { addMessage, setLoading } = useChatStore();
+  const { user } = useAuthStore();
 
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +53,7 @@ const WelcomeView: React.FC = () => {
       <div className="flex justify-between items-start animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="space-y-1">
           <h2 className="text-2xl md:text-3xl font-medium text-brand-light/60">Hello,</h2>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">Esteban Orjuela</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">{user?.username || 'Usuario'}</h1>
           <p className="text-brand-light/30 pt-1 font-light italic">Ready to explore with your AI Agent?</p>
         </div>
         <div className="hidden md:block">

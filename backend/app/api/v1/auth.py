@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.chat import User
 from app.schemas.chat import UserCreate, UserResponse, Token
 from app.core.security import verify_password, get_password_hash, create_access_token
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -39,3 +40,7 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     
     access_token = create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user

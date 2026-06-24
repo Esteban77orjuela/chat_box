@@ -84,8 +84,21 @@ Esta bitácora documenta los pasos, pruebas y cambios realizados en el proyecto 
 - Se mantiene SQLite para desarrollo local; PostgreSQL se usará en producción vía Docker.
 - Los Dockerfiles ahora usan multi-stage build correctamente con las rutas ajustadas.
 
-### 🚀 Próximos Pasos (Sprint 2)
-- Crear endpoint `/api/v1/auth/me` para usuario real post-login.
-- Reemplazar usuario simulado en frontend por datos reales.
-- Implementar Socket.IO con autenticación JWT.
-- Parametrizar nombre de usuario hardcodeado en `WelcomeView.tsx`.
+---
+
+## Sprint 2 — Conectar Frontend con Backend Real (Fase 4)
+
+### 📌 Lo que logramos
+1. **Endpoint `/api/v1/auth/me`**: Creado en `backend/app/api/v1/auth.py`. Devuelve los datos del usuario autenticado usando el token JWT.
+2. **Login real**: `AuthModal.tsx` ya no simula el usuario. Después del login llama a `/me` y guarda los datos reales del backend.
+3. **Socket.IO con JWT**: El servidor ahora valida el token en la conexión del socket. Si no hay token o es inválido, rechaza (`ConnectionRefusedError`).
+4. **Nombre dinámico**: `WelcomeView.tsx` ya no tiene "Esteban Orjuela" hardcodeado. Usa `user?.username` del auth store.
+5. **Tests verificados**: 5/5 pruebas de backend pasan.
+
+### 🔧 Decisiones Técnicas
+- Socket.IO usa el campo `auth` del handshake para enviar el JWT, no query params (más seguro, no queda en logs).
+- El endpoint `/me` reutiliza el `get_current_user` existente, sin duplicar lógica.
+
+### 🚀 Próximos Pasos (Sprint 3)
+- Testing profesional: tests unitarios del frontend, tests de integración del chat.
+- Prueba manual completa: registrar usuario, chatear, verificar que la IA responda.

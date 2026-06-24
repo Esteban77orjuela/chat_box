@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 
 const SOCKET_URL = 'http://localhost:8000';
 
@@ -9,8 +10,10 @@ export const useSocket = () => {
     const { addMessage, setLoading } = useChatStore();
 
     useEffect(() => {
-        // Inicializar socket
-        socketRef.current = io(SOCKET_URL);
+        const token = useAuthStore.getState().token;
+        socketRef.current = io(SOCKET_URL, {
+            auth: { token }
+        });
 
         socketRef.current.on('connect', () => {
             console.log('Socket conectado');
@@ -31,7 +34,6 @@ export const useSocket = () => {
     const sendMessage = (content: string, history: any[]) => {
         if (socketRef.current) {
             setLoading(true);
-            // Enviamos el contenido y los últimos mensajes como contexto
             socketRef.current.emit('send_message', {
                 content,
                 history: history.slice(-5)

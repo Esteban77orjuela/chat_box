@@ -1,23 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from jose import jwt, JWTError
 import socketio
 from app.core.config import settings
 from app.api.v1 import auth, chat
 from app.services.ai_service import ai_service
-from app.services.chat_service import chat_service
 from app.db.session import SessionLocal, engine
 from app.models import chat as models
 
-# Crear tablas al iniciar
 models.Base.metadata.create_all(bind=engine)
 
-# 1. Configuración FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# 2. Configuración CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
@@ -26,14 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir rutas
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
 
-# 3. Configuración Socket.IO
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*' # En prod limitar a FRONTEND_URL
+    cors_allowed_origins='*'
 )
 socket_app = socketio.ASGIApp(sio, app)
 
@@ -41,28 +36,31 @@ socket_app = socketio.ASGIApp(sio, app)
 def read_root():
     return {"message": "Welcome to AI Chat API", "status": "online"}
 
-# Eventos de Socket.IO iniciales
 @sio.event
-async def connect(sid, environ):
-    print(f"Cliente conectado: {sid}")
+async def connect(sid, environ, auth):
+    token = None
+    if auth and auth.get("token"):
+        token = auth["token"]
+    if not token:
+        raise socketio.exceptions.ConnectionRefusedError("Token requerido")
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise socketio.exceptions.ConnectionRefusedError("Token inválido")
+        environ["user_id"] = int(user_id)
+    except JWTError:
+        raise socketio.exceptions.ConnectionRefusedError("Token inválido o expirado")
 
 @sio.event
 async def disconnect(sid):
-    print(f"Cliente desconectado: {sid}")
+    pass
 
 @sio.on("send_message")
 async def handle_message(sid, data):
     content = data.get("content")
-    history = data.get("history", []) # El cliente puede enviar historial breve
-    
-    print(f"Mensaje de {sid}: {content}")
-    
-    # 1. (Opcional) Guardar mensaje del usuario en DB aquí
-    
-    # 2. Obtener respuesta de IA
+    history = data.get("history", [])
     ai_response = ai_service.generate_response(content, history)
-    
-    # 3. Enviar respuesta al cliente
     await sio.emit("receive_message", {
         "content": ai_response,
         "sender_type": "ai"

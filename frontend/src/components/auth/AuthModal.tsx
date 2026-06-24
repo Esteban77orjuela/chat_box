@@ -36,12 +36,18 @@ const AuthModal: React.FC = () => {
                     throw new Error(data.detail || 'Error al iniciar sesión');
                 }
 
-                // Guardar token temporalmente y obtener datos del usuario
-                // TODO: En el futuro, el backend debería devolver el usuario junto con el token o tener un endpoint /me
-                // Por ahora simulamos el usuario para avanzar
+                const token = data.access_token;
+                const meResponse = await fetch('http://127.0.0.1:8000/api/v1/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userData = await meResponse.json();
+                if (!meResponse.ok) {
+                    throw new Error(userData.detail || 'Error al obtener usuario');
+                }
+
                 setAuth(
-                    { id: 1, username: email.split('@')[0], email: email }, 
-                    data.access_token
+                    { id: userData.id, username: userData.username, email: userData.email },
+                    token
                 );
             } else {
                 // Registro (JSON)
