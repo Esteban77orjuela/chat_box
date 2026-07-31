@@ -9,13 +9,11 @@ const API_URL = 'http://127.0.0.1:8000/api/v1';
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     const { token, logout } = useAuthStore.getState();
 
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-    };
+    const headers = new Headers(options.headers);
+    headers.set('Content-Type', 'application/json');
 
     if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers.set('Authorization', `Bearer ${token}`);
     }
 
     try {
