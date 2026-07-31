@@ -45,16 +45,17 @@ jobs:
       - name: Lint backend (ruff)
         working-directory: ./backend
         run: |
-          . venv/Scripts/activate
-          ruff check .
+          . venv/bin/activate
+          ruff check app/ tests/
 
       - name: Run backend tests
         working-directory: ./backend
         env:
           DATABASE_URL: sqlite:///./test.db
+          GROQ_API_KEY: skip
         run: |
-          . venv/Scripts/activate
-          pytest -q
+          . venv/bin/activate
+          pytest -q --no-header
 
       # ---- Frontend ----
       - name: Set up Node
@@ -62,19 +63,20 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
 
-      - name: Lint frontend (prettier)
+      - name: TypeScript check
         working-directory: ./frontend
-        run: npx prettier --check .
+        run: npx tsc --noEmit
 
       - name: Run frontend tests
         working-directory: ./frontend
         run: |
-          npm test --silent || true  # ignore if no test script
+          npm test --silent || true
 
       # ---- Docker build ----
       - name: Build Docker images

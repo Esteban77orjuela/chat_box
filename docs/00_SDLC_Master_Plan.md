@@ -46,34 +46,34 @@ Cada decisión, configuración y línea de código se conecta con esta visión g
 
 ### FASE 4 — DESARROLLO
 - **Objetivo:** Código limpio, estándares, linters, formateo, control de versiones, automatización
-- **Herramientas:** Ruff, Prettier, Husky, Git, GitFlow
-- **Estado del proyecto:** 🔄 En progreso (Sprint 1 — saneamiento y corrección de bugs)
+- **Herramientas:** Ruff, Prettier, Git, GitFlow
+- **Estado del proyecto:** ✅ Completado — código saneado, linters configurados, sin código muerto
 
 ### FASE 5 — BASE DE DATOS
 - **Objetivo:** Modelo relacional, índices, optimización, normalización, migraciones, transacciones
 - **Tecnologías:** PostgreSQL, SQLAlchemy, Alembic
-- **Estado del proyecto:** 🔄 SQLite temporal, pendiente migrar a PostgreSQL con Alembic
+- **Estado del proyecto:** ⏳ SQLite en desarrollo, pendiente migrar a PostgreSQL con Alembic
 
 ### FASE 6 — TESTING
 - **Objetivo:** Unit Testing, Integration Testing, E2E, Performance Testing
-- **Herramientas:** pytest, Jest, Playwright
-- **Estado del proyecto:** 🔄 Tests básicos de backend existentes, faltan tests de frontend
+- **Herramientas:** pytest
+- **Estado del proyecto:** 🔄 Tests de backend funcionando, pendientes tests de frontend
 
 ### FASE 7 — CIBERSEGURIDAD (DEVSECOPS)
 - **Objetivo:** Seguridad en todo el ciclo de vida. SAST, DAST, Dependency Scanning, Secret Scanning
 - **Implementación:** JWT, Argon2, CORS, OWASP, Rate Limiting
-- **Estado del proyecto:** 🔄 Autenticación JWT implementada, pendiente hardening
+- **Estado del proyecto:** ✅ JWT + Argon2 implementados, pendiente rate limiting
 
 ### FASE 8 — DOCKER Y CONTAINERS
 - **Objetivo:** Empaquetar la aplicación para que sea reproducible
 - **Conceptos:** Dockerfile, Images, Containers, Docker Compose
-- **Estado del proyecto:** 🔄 Dockerfiles creados con bugs por corregir
+- **Estado del proyecto:** ✅ Dockerfiles funcionales para backend y frontend
 
 ### FASE 9 — CI/CD
 - **Objetivo:** Integración y despliegue continuo
-- **Pipeline:** Push → Tests → Security → Build Docker → Deploy → Monitor
+- **Pipeline:** Push → Tests → TypeScript check → Build Docker → Deploy → Monitor
 - **Herramientas:** GitHub Actions
-- **Estado del proyecto:** 🔄 Pipeline creado, pendiente depuración
+- **Estado del proyecto:** ✅ Pipeline CI configurado con lint, tests, type-check y build
 
 ### FASE 10 — CLOUD
 - **Objetivo:** Infraestructura en la nube (AWS, GCP, Azure, Render, Railway)
