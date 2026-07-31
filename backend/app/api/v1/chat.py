@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
@@ -9,38 +9,38 @@ from app.schemas.chat import ConversationResponse, ConversationBase, MessageResp
 
 router = APIRouter()
 
+
 @router.post("/", response_model=ConversationResponse)
 def create_conversation(conv_in: ConversationBase, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return chat_service.create_conversation(db, user_id=current_user.id, title=conv_in.title)
+
 
 @router.get("/", response_model=List[ConversationResponse])
 def get_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return chat_service.get_user_conversations(db, user_id=current_user.id)
 
+
 @router.get("/{conversation_id}/messages", response_model=List[MessageResponse])
 def get_messages(conversation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Omitimos verificación de propiedad por ahora
-    return chat_service.get_conversation_messages(db, conversation_id)
+    return chat_service.get_conversation_messages(db, conversation_id, user_id=current_user.id)
+
 
 @router.post("/{conversation_id}/messages", response_model=MessageResponse)
 async def send_message(conversation_id: int, msg_in: MessageInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # 0. Asegurarnos de que la conversación exista (hack temporal para agilizar demo frontend)
-    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    conv = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id,
+    ).first()
     if not conv:
-        chat_service.create_conversation(db, user_id=current_user.id, title="Mi Primer Chat")
-        
-    # 1. Guardar mensaje del usuario
-    user_msg = chat_service.add_message(db, conversation_id, content=msg_in.content, sender_type=SenderType.USER)
-    
-    # 2. Llamar a Groq AI
+        conv = chat_service.create_conversation(db, user_id=current_user.id, title="Mi Primer Chat")
+        conversation_id = conv.id
+
+    history = chat_service.get_conversation_messages(db, conversation_id, user_id=current_user.id)[-10:]
+    chat_service.add_message(db, conversation_id, content=msg_in.content, sender_type=SenderType.USER)
+
     try:
-        # Obtenemos historial reciente para contexto (opcional)
-        history = chat_service.get_conversation_messages(db, conversation_id)[-10:]
         ai_response_text = await chat_service.generate_ai_response(history, msg_in.content)
     except Exception as e:
-        ai_response_text = f"Error al contactar con la IA: {str(e)}"
+        ai_response_text = f"Error contacting service: {str(e)}"
 
-    # 3. Guardar respuesta de la IA
-    ai_msg = chat_service.add_message(db, conversation_id, content=ai_response_text, sender_type=SenderType.AI)
-    
-    return ai_msg
+    return chat_service.add_message(db, conversation_id, content=ai_response_text, sender_type=SenderType.BOT)

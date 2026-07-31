@@ -4,7 +4,7 @@ def test_read_root(client):
     """
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to AI Chat API", "status": "online"}
+    assert response.json() == {"message": "Welcome to Chat Box API", "status": "online"}
 
 def test_auth_register_tdd():
     """

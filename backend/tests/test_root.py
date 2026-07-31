@@ -9,5 +9,5 @@ def test_root():
     response = client.get("/")
     assert response.status_code == 200
     json_data = response.json()
-    assert json_data.get("message") == "Welcome to AI Chat API"
+    assert json_data.get("message") == "Welcome to Chat Box API"
     assert json_data.get("status") == "online"

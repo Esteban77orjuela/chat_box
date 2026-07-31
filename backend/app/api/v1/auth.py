@@ -41,6 +41,21 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     access_token = create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer"}
 
+@router.post("/guest", response_model=Token)
+def guest_login(db: Session = Depends(get_db)):
+    guest = db.query(User).filter(User.email == "guest@chatbox.dev").first()
+    if not guest:
+        guest = User(
+            username="Explorer",
+            email="guest@chatbox.dev",
+            hashed_password=get_password_hash("guest-mode")
+        )
+        db.add(guest)
+        db.commit()
+        db.refresh(guest)
+    access_token = create_access_token(subject=guest.id)
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user

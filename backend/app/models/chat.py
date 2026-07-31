@@ -6,7 +6,7 @@ from app.db.session import Base
 
 class SenderType(enum.Enum):
     USER = "user"
-    AI = "ai"
+    BOT = "bot"
 
 class User(Base):
     __tablename__ = "users"
