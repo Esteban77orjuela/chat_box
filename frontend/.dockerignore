@@ -1,0 +1,11 @@
+# Dependencies (reinstalled/regenerated inside the image)
+node_modules/
+
+# Build output
+dist/
+.vite/
+
+# Logs and local config
+*.log
+npm-debug.log*
+.DS_Store

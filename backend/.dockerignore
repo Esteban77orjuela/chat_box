@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Databases (never ship local data)
+*.db
+*.sqlite3
+
+# Secrets
+.env
+
+# Tests and docs are not needed inside the image
+tests/
+docs/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store

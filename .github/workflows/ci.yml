@@ -6,58 +6,56 @@ on:
   pull_request:
     branches: [main]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: chat_user
-          POSTGRES_PASSWORD: chat_pass
-          POSTGRES_DB: chat_db
-        ports:
-          - 5432:5432
-        options: >
-          --health-cmd "pg_isready -U ${{ env.POSTGRES_USER }}"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint, format, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ---- Backend ----
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install backend dependencies
-        working-directory: ./backend
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          . venv/Scripts/activate
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt ruff==0.15.15
 
-      - name: Lint backend (ruff)
-        working-directory: ./backend
-        run: |
-          . venv/bin/activate
-          ruff check app/ tests/
+      - name: Lint (ruff check)
+        run: python -m ruff check app/ tests/
 
-      - name: Run backend tests
-        working-directory: ./backend
+      - name: Format (ruff format --check)
+        run: python -m ruff format --check app/ tests/
+
+      - name: Tests (pytest)
         env:
-          DATABASE_URL: sqlite:///./test.db
           GROQ_API_KEY: skip
-        run: |
-          . venv/bin/activate
-          pytest -q --no-header
+        run: python -m pytest -q
 
-      # ---- Frontend ----
+  frontend:
+    name: Frontend (type-check, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -65,25 +63,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        working-directory: ./frontend
+      - name: Install dependencies
         run: npm ci
 
       - name: TypeScript check
-        working-directory: ./frontend
         run: npx tsc --noEmit
 
-      - name: Run frontend tests
-        working-directory: ./frontend
-        run: |
-          npm test --silent || true
+      - name: Tests (vitest)
+        run: npm test
 
-      # ---- Docker build ----
-      - name: Build Docker images
-        run: |
-          docker compose -f docker-compose.yml build
+      - name: Production build
+        run: npm run build
 
-      - name: Push Docker images (optional)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          echo "Skipping push – configure your registry here"
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t chatbox-backend:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t chatbox-frontend:ci ./frontend
